@@ -58,6 +58,15 @@ public class IssueReport {
     @ManyToOne
     @JoinColumn(name = "department_id")
     private Department department;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "city_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_issue_city"))
+    private City city;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "locality_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_issue_locality"))
+    private Locality locality;
     @PrePersist
     public void onCreate() {
         createdAt = LocalDateTime.now();

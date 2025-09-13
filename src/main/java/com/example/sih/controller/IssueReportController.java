@@ -5,8 +5,7 @@ import com.example.sih.service.IssueReportService;
 import com.example.sih.types.IssueCategory;
 import com.example.sih.types.Status;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -15,49 +14,67 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/issues")
 @RequiredArgsConstructor
+@CrossOrigin
 public class IssueReportController {
 
-    private final IssueReportService issueReportService;
+    private final IssueReportService issueService;
 
-    // ✅ Create Issue
-    @PostMapping
-    public ResponseEntity<IssueReport> createIssue(@Valid @RequestBody IssueReport issueReport) {
-        IssueReport saved = issueReportService.createIssue(issueReport);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    // Create issue under a specific city and locality
+    @PostMapping("/city/{cityId}/locality/{localityId}")
+    public ResponseEntity<IssueReport> createIssue(
+            @Valid @RequestBody IssueReport issue,
+            @PathVariable Long cityId,
+            @PathVariable Long localityId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(issueService.createIssue(issue, cityId, localityId));
     }
 
-    // ✅ Get all issues
     @GetMapping
     public List<IssueReport> getAllIssues() {
-        return issueReportService.getAllIssues();
+        return issueService.getAllIssues();
     }
 
-    // ✅ Get single issue
     @GetMapping("/{id}")
     public ResponseEntity<IssueReport> getIssue(@PathVariable Long id) {
-        IssueReport issue = issueReportService.getIssue(id);
-        if(issue == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(issue);
+        return ResponseEntity.ok(issueService.getIssue(id));
     }
 
-    // ✅ Update status
     @PatchMapping("/{id}/status")
-    public ResponseEntity<IssueReport> updateStatus(
-            @PathVariable Long id,
-            @RequestParam Status newStatus) {
-        IssueReport updated = issueReportService.updateStatus(id, newStatus);
-        return ResponseEntity.ok(updated);
+    public ResponseEntity<IssueReport> updateStatus(@PathVariable Long id, @RequestParam Status status) {
+        return ResponseEntity.ok(issueService.updateStatus(id, status));
     }
 
-    // ✅ Filter by status
+    // Move an issue to a different city/locality (maintains counts)
+    @PatchMapping("/{id}/location")
+    public ResponseEntity<IssueReport> updateLocation(
+            @PathVariable Long id,
+            @RequestParam Long cityId,
+            @RequestParam Long localityId) {
+        return ResponseEntity.ok(issueService.updateLocation(id, cityId, localityId));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteIssue(@PathVariable Long id) {
+        issueService.deleteIssue(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/status/{status}")
     public List<IssueReport> getByStatus(@PathVariable Status status) {
-        return issueReportService.getIssuesByStatus(status);
+        return issueService.getIssuesByStatus(status);
     }
 
-    // ✅ Filter by category
     @GetMapping("/category/{category}")
     public List<IssueReport> getByCategory(@PathVariable IssueCategory category) {
-        return issueReportService.getIssuesByCategory(category);
+        return issueService.getIssuesByCategory(category);
+    }
+
+    @GetMapping("/city/{cityId}")
+    public List<IssueReport> getByCity(@PathVariable Long cityId) {
+        return issueService.getIssuesByCity(cityId);
+    }
+
+    @GetMapping("/locality/{localityId}")
+    public List<IssueReport> getByLocality(@PathVariable Long localityId) {
+        return issueService.getIssuesByLocality(localityId);
     }
 }

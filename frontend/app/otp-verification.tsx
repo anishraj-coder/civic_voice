@@ -95,6 +95,7 @@ export default function OTPVerification() {
                 <TouchableOpacity
                     style={[styles.verifyButton, locationStatus === 'success' && styles.verifyButtonActive]}
                     disabled={locationStatus === 'loading'}
+                    onPress={() => locationStatus === 'success' && router.push('/dashboard')}
                 >
                     <Text style={[styles.verifyButtonText, locationStatus === 'success' && styles.verifyButtonTextActive]}>
                         Verify

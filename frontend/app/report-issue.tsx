@@ -32,7 +32,7 @@ export default function ReportIssue() {
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [4, 3],
             quality: 0.8,
@@ -42,10 +42,8 @@ export default function ReportIssue() {
             const imageUri = result.assets[0].uri;
             setSelectedImage(imageUri);
 
-            // Store image in AsyncStorage with a unique key
             const imageKey = `civic_image_${Date.now()}`;
             try {
-                // For React Native, we'll store the URI directly
                 await AsyncStorage.setItem(imageKey, imageUri);
                 await AsyncStorage.setItem('lastImageKey', imageKey);
             } catch (error) {
@@ -72,7 +70,6 @@ export default function ReportIssue() {
             const imageUri = result.assets[0].uri;
             setSelectedImage(imageUri);
 
-            // Store image in AsyncStorage with a unique key
             const imageKey = `civic_image_${Date.now()}`;
             try {
                 await AsyncStorage.setItem(imageKey, imageUri);

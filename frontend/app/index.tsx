@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, StatusBar } from 'react-native';
+import { router } from 'expo-router';
 import SelectionImage from '../assets/images/Selection.png';
 
 export default function Index() {
@@ -36,7 +37,10 @@ export default function Index() {
           Standard message and data rates apply.
         </Text>
 
-        <TouchableOpacity style={styles.loginButton}>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => router.push('/otp-verification')}
+        >
           <Text style={styles.loginButtonText}>Login</Text>
           <Text style={styles.arrow}>→</Text>
         </TouchableOpacity>

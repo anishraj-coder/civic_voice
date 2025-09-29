@@ -15,7 +15,16 @@ const locationDataset = [
     { address: '258 Willow Court, South Springfield', lat: '34.0535', lon: '118.2450' }
 ];
 
+const issueTypes = [
+    'Roads',
+    'Sanitation',
+    'Streetlights',
+    'Water Leakage'
+];
+
 export default function ReportIssue() {
+    const [issueType, setIssueType] = useState('Roads');
+    const [showDropdown, setShowDropdown] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [notes, setNotes] = useState('');
     const [location, setLocation] = useState('789 Elm Street, Springfield, USA');
@@ -170,20 +179,51 @@ export default function ReportIssue() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.content}>
-                    <TouchableOpacity style={styles.imageContainer} onPress={showImageOptions}>
-                        {selectedImage ? (
-                            <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
-                        ) : (
-                            <View style={styles.imagePlaceholder}>
-                                <Text style={styles.cameraIcon}>📷</Text>
-                                <Text style={styles.imageText}>Tap to add photo</Text>
+                    <View style={styles.issueTypeSection}>
+                        <Text style={styles.sectionTitle}>Issue Type</Text>
+                        <TouchableOpacity
+                            style={styles.dropdown}
+                            onPress={() => setShowDropdown(!showDropdown)}
+                        >
+                            <Text style={styles.dropdownText}>{issueType}</Text>
+                            <Text style={styles.dropdownIcon}>{showDropdown ? '▲' : '▼'}</Text>
+                        </TouchableOpacity>
+
+                        {showDropdown && (
+                            <View style={styles.dropdownOptions}>
+                                {issueTypes.map((type) => (
+                                    <TouchableOpacity
+                                        key={type}
+                                        style={styles.dropdownOption}
+                                        onPress={() => {
+                                            setIssueType(type);
+                                            setShowDropdown(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dropdownOptionText}>{type}</Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
                         )}
-                    </TouchableOpacity>
+                    </View>
 
-                    <TouchableOpacity style={styles.addPhotoButton} onPress={showImageOptions}>
-                        <Text style={styles.addPhotoText}>+ Add Photo</Text>
-                    </TouchableOpacity>
+                    <View style={styles.photoSection}>
+                        <Text style={styles.sectionTitle}>Photo Upload</Text>
+                        <TouchableOpacity style={styles.imageContainer} onPress={showImageOptions}>
+                            {selectedImage ? (
+                                <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+                            ) : (
+                                <View style={styles.imagePlaceholder}>
+                                    <Text style={styles.cameraIcon}>📷</Text>
+                                    <Text style={styles.imageText}>Tap to add photo</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.addPhotoButton} onPress={showImageOptions}>
+                            <Text style={styles.addPhotoText}>+ Add Photo</Text>
+                        </TouchableOpacity>
+                    </View>
 
                     <View style={styles.locationSection}>
                         <Text style={styles.sectionTitle}>Location Detection</Text>
@@ -425,6 +465,56 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#333',
         marginBottom: 8,
+    },
+    issueTypeSection: {
+        marginBottom: 24,
+    },
+    dropdown: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderRadius: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#FFFFFF',
+    },
+    dropdownText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    dropdownIcon: {
+        fontSize: 12,
+        color: '#666',
+    },
+    dropdownOptions: {
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderRadius: 8,
+        backgroundColor: '#FFFFFF',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    dropdownOption: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    dropdownOptionText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    photoSection: {
+        marginBottom: 24,
     },
     submitButton: {
         backgroundColor: '#D64545',

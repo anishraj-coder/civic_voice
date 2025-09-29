@@ -3,6 +3,22 @@ import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity, Image,
 import { router, useLocalSearchParams } from 'expo-router';
 import { apiService, IssueReport } from '../services/api';
 
+// Import category-specific images
+import Card1Image from '../assets/images/card1.png';
+import Card2Image from '../assets/images/card2.png';
+import Card3Image from '../assets/images/card3.png';
+import Card4Image from '../assets/images/card4.png';
+import Card5Image from '../assets/images/card5.png';
+
+// Map issue categories to specific images
+const categoryImages = {
+  'ROADS': Card1Image,        // Roads/Infrastructure issues
+  'SANITATION': Card2Image,   // Sanitation/Cleanliness issues  
+  'LIGHTING': Card3Image,     // Street lighting issues
+  'WASTE': Card4Image,        // Waste management issues
+  'WATER': Card5Image         // Water supply issues
+};
+
 export default function IssueDetails() {
   const { id } = useLocalSearchParams();
   const [issue, setIssue] = useState<IssueReport | null>(null);
@@ -82,6 +98,10 @@ export default function IssueDetails() {
     }
   };
 
+  const getCategoryImage = (category: string) => {
+    return categoryImages[category as keyof typeof categoryImages] || Card1Image;
+  };
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -119,9 +139,10 @@ export default function IssueDetails() {
       </View>
 
       <ScrollView style={styles.content}>
-        {issue.photoUrl && (
-          <Image source={{ uri: issue.photoUrl }} style={styles.issueImage} />
-        )}
+        <Image
+          source={issue.photoUrl ? { uri: issue.photoUrl } : getCategoryImage(issue.category || 'ROADS')}
+          style={styles.issueImage}
+        />
 
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{issue.description}</Text>

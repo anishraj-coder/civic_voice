@@ -5,6 +5,22 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService, CreateIssueRequest } from '../services/api';
 
+// Import category-specific images
+import Card1Image from '../assets/images/card1.png';
+import Card2Image from '../assets/images/card2.png';
+import Card3Image from '../assets/images/card3.png';
+import Card4Image from '../assets/images/card4.png';
+import Card5Image from '../assets/images/card5.png';
+
+// Map issue categories to specific images
+const categoryImages = {
+    'ROADS': Card1Image,        // Roads/Infrastructure issues
+    'SANITATION': Card2Image,   // Sanitation/Cleanliness issues  
+    'LIGHTING': Card3Image,     // Street lighting issues
+    'WASTE': Card4Image,        // Waste management issues
+    'WATER': Card5Image         // Water supply issues
+};
+
 const locationDataset = [
     { address: '123 Main Street, Downtown, Springfield', lat: '34.0522', lon: '118.2437' },
     { address: '456 Oak Avenue, Residential Area, Springfield', lat: '34.0525', lon: '118.2440' },
@@ -17,15 +33,20 @@ const locationDataset = [
 ];
 
 const issueTypes = [
-    'ROADS',
-    'SANITATION',
-    'LIGHTING',
-    'WATER',
-    'WASTE'
+    { value: 'ROADS', label: 'Roads & Infrastructure' },
+    { value: 'SANITATION', label: 'Sanitation & Cleanliness' },
+    { value: 'LIGHTING', label: 'Street Lighting' },
+    { value: 'WATER', label: 'Water Supply' },
+    { value: 'WASTE', label: 'Waste Management' }
 ];
 
 export default function ReportIssue() {
     const [issueType, setIssueType] = useState('ROADS');
+
+    const getIssueTypeLabel = (value: string) => {
+        const type = issueTypes.find(t => t.value === value);
+        return type ? type.label : value;
+    };
     const [showDropdown, setShowDropdown] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [notes, setNotes] = useState('');
@@ -34,6 +55,10 @@ export default function ReportIssue() {
     const [latInput, setLatInput] = useState('34.0522');
     const [lonInput, setLonInput] = useState('118.2437');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const getCategoryImage = (category: string) => {
+        return categoryImages[category as keyof typeof categoryImages] || Card1Image;
+    };
 
     const pickImageFromGallery = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -203,7 +228,7 @@ export default function ReportIssue() {
                             style={styles.dropdown}
                             onPress={() => setShowDropdown(!showDropdown)}
                         >
-                            <Text style={styles.dropdownText}>{issueType}</Text>
+                            <Text style={styles.dropdownText}>{getIssueTypeLabel(issueType)}</Text>
                             <Text style={styles.dropdownIcon}>{showDropdown ? '▲' : '▼'}</Text>
                         </TouchableOpacity>
 
@@ -211,14 +236,14 @@ export default function ReportIssue() {
                             <View style={styles.dropdownOptions}>
                                 {issueTypes.map((type) => (
                                     <TouchableOpacity
-                                        key={type}
+                                        key={type.value}
                                         style={styles.dropdownOption}
                                         onPress={() => {
-                                            setIssueType(type);
+                                            setIssueType(type.value);
                                             setShowDropdown(false);
                                         }}
                                     >
-                                        <Text style={styles.dropdownOptionText}>{type}</Text>
+                                        <Text style={styles.dropdownOptionText}>{type.label}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -232,8 +257,15 @@ export default function ReportIssue() {
                                 <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
                             ) : (
                                 <View style={styles.imagePlaceholder}>
-                                    <Text style={styles.cameraIcon}>📷</Text>
-                                    <Text style={styles.imageText}>Tap to add photo</Text>
+                                    <Image
+                                        source={getCategoryImage(issueType)}
+                                        style={styles.placeholderImage}
+                                    />
+                                    <View style={styles.overlayContainer}>
+                                        <Text style={styles.cameraIcon}>📷</Text>
+                                        <Text style={styles.imageText}>Tap to add photo</Text>
+                                        <Text style={styles.categoryHint}>Showing {getIssueTypeLabel(issueType)} example</Text>
+                                    </View>
                                 </View>
                             )}
                         </TouchableOpacity>
@@ -372,17 +404,39 @@ const styles = StyleSheet.create({
     },
     imagePlaceholder: {
         flex: 1,
+        position: 'relative',
+    },
+    placeholderImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+        opacity: 0.7,
+    },
+    overlayContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
     },
     cameraIcon: {
         fontSize: 48,
-        color: '#999',
+        color: '#FFFFFF',
         marginBottom: 8,
     },
     imageText: {
         fontSize: 16,
-        color: '#999',
+        color: '#FFFFFF',
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    categoryHint: {
+        fontSize: 12,
+        color: '#FFFFFF',
+        opacity: 0.8,
     },
     addPhotoButton: {
         borderWidth: 1,

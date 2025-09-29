@@ -43,7 +43,7 @@ class ApiService {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     const authHeaders = await this.getAuthHeaders();
     const defaultOptions: RequestInit = {
       headers: {
@@ -54,7 +54,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, { ...defaultOptions, ...options });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API Error: ${response.status} - ${errorText}`);
@@ -114,6 +114,14 @@ class ApiService {
     return this.request<void>(`/issues/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async getNearbyIssues(latitude: number, longitude: number, radiusKm: number = 10): Promise<IssueReport[]> {
+    return this.request<IssueReport[]>(`/issues/nearby?latitude=${latitude}&longitude=${longitude}&radiusKm=${radiusKm}`);
+  }
+
+  async getIssueStatistics(): Promise<any> {
+    return this.request<any>('/issues/stats');
   }
 }
 

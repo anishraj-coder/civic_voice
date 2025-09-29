@@ -77,4 +77,19 @@ public class IssueReportController {
     public List<IssueReport> getByLocality(@PathVariable("localityId") Long localityId) {
         return issueService.getIssuesByLocality(localityId);
     }
+
+    // Get issues within a radius of given coordinates
+    @GetMapping("/nearby")
+    public List<IssueReport> getNearbyIssues(
+            @RequestParam Double latitude,
+            @RequestParam Double longitude,
+            @RequestParam(defaultValue = "10.0") Double radiusKm) {
+        return issueService.getIssuesNearby(latitude, longitude, radiusKm);
+    }
+
+    // Get issues statistics for dashboard
+    @GetMapping("/stats")
+    public ResponseEntity<Object> getIssueStats() {
+        return ResponseEntity.ok(issueService.getIssueStatistics());
+    }
 }

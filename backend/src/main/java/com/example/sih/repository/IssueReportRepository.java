@@ -48,4 +48,14 @@ public interface IssueReportRepository extends JpaRepository<IssueReport, Long> 
 
     @Query("select ir.locality.id as localityId, count(ir) as cnt from IssueReport ir group by ir.locality.id")
     List<Object[]> countGroupedByLocality();
+
+    // Find issues within a radius using Haversine formula
+    @Query(value = "SELECT * FROM issue_report ir " +
+           "WHERE (6371 * acos(cos(radians(:latitude)) * cos(radians(ir.latitude)) * " +
+           "cos(radians(ir.longitude) - radians(:longitude)) + sin(radians(:latitude)) * " +
+           "sin(radians(ir.latitude)))) <= :radiusKm", nativeQuery = true)
+    List<IssueReport> findNearbyIssues(Double latitude, Double longitude, Double radiusKm);
+
+    // Count methods for statistics
+    long countByStatus(Status status);
 }

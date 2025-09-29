@@ -116,4 +116,24 @@ public class IssueReportService {
     public List<IssueReport> getIssuesByLocality(Long localityId) {
         return issueRepo.findByLocalityIdWithRelations(localityId);
     }
+
+    public List<IssueReport> getIssuesNearby(Double latitude, Double longitude, Double radiusKm) {
+        return issueRepo.findNearbyIssues(latitude, longitude, radiusKm);
+    }
+
+    public Object getIssueStatistics() {
+        long totalIssues = issueRepo.count();
+        long submittedIssues = issueRepo.countByStatus(Status.SUBMITTED);
+        long inProgressIssues = issueRepo.countByStatus(Status.IN_PROGRESS);
+        long resolvedIssues = issueRepo.countByStatus(Status.RESOLVED);
+        long rejectedIssues = issueRepo.countByStatus(Status.REJECTED);
+
+        return new Object() {
+            public final long total = totalIssues;
+            public final long submitted = submittedIssues;
+            public final long inProgress = inProgressIssues;
+            public final long resolved = resolvedIssues;
+            public final long rejected = rejectedIssues;
+        };
+    }
 }

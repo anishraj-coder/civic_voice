@@ -10,6 +10,15 @@ import Card3Image from '../assets/images/card3.png';
 import Card4Image from '../assets/images/card4.png';
 import Card5Image from '../assets/images/card5.png';
 
+// Map issue categories to specific images
+const categoryImages = {
+    'ROADS': Card1Image,        // Roads/Infrastructure issues
+    'SANITATION': Card2Image,   // Sanitation/Cleanliness issues  
+    'LIGHTING': Card3Image,     // Street lighting issues
+    'WASTE': Card4Image,        // Waste management issues
+    'WATER': Card5Image         // Water supply issues
+};
+
 const cardData = [
     {
         id: 1,
@@ -18,43 +27,48 @@ const cardData = [
         status: 'Pending',
         statusColor: '#FF6B6B',
         time: '2h ago',
-        location: 'Main St, Downtown'
+        location: 'Main St, Downtown',
+        category: 'ROADS'
     },
     {
         id: 2,
-        image: Card2Image,
+        image: Card3Image,
         title: 'Broken street light at Elm Avenue, making',
         status: 'In Progress',
         statusColor: '#FF9500',
         time: '1d ago',
-        location: 'Elm Ave, Residential'
+        location: 'Elm Ave, Residential',
+        category: 'LIGHTING'
     },
     {
         id: 3,
-        image: Card3Image,
+        image: Card4Image,
         title: 'Overflowing public trash bins at Central',
         status: 'Resolved',
         statusColor: '#4CAF50',
         time: '3d ago',
-        location: 'Central Park, Green Area'
+        location: 'Central Park, Green Area',
+        category: 'WASTE'
     },
     {
         id: 4,
-        image: Card4Image,
-        title: 'Graffiti on the community center wall,',
+        image: Card2Image,
+        title: 'Poor sanitation conditions at market area',
         status: 'Pending',
         statusColor: '#FF6B6B',
         time: '5h ago',
-        location: 'Community Center, North Side'
+        location: 'Community Center, North Side',
+        category: 'SANITATION'
     },
     {
         id: 5,
         image: Card5Image,
-        title: 'Blocked storm drain on Oak Street, causing',
+        title: 'Water supply disruption on Oak Street',
         status: 'In Progress',
         statusColor: '#FF9500',
         time: '2d ago',
-        location: 'Oak St, Industrial Area'
+        location: 'Oak St, Industrial Area',
+        category: 'WATER'
     }
 ];
 
@@ -63,6 +77,7 @@ export default function Dashboard() {
     const [allIssues, setAllIssues] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [statistics, setStatistics] = useState<any>(null);
 
     const loadIssues = async () => {
         setLoading(true);
@@ -75,7 +90,7 @@ export default function Dashboard() {
             // Transform API issues to match the expected format
             const transformedApiIssues = apiIssues.map((issue: IssueReport) => ({
                 id: issue.id,
-                image: issue.photoUrl || Card1Image, // Use photoUrl from backend, fallback to default image
+                image: issue.photoUrl || getCategoryImage(issue.category || 'ROADS'), // Use photoUrl from backend, fallback to category-specific image
                 title: issue.description ? issue.description.substring(0, 50) + (issue.description.length > 50 ? '...' : '') : 'No description', // Use description as title since backend doesn't have title field
                 status: issue.status || 'Pending',
                 statusColor: getStatusColor(issue.status || 'Pending'),
@@ -95,6 +110,14 @@ export default function Dashboard() {
 
             setUserIssues(localIssues);
             setAllIssues([...transformedApiIssues, ...localIssues]);
+
+            // Load statistics
+            try {
+                const stats = await apiService.getIssueStatistics();
+                setStatistics(stats);
+            } catch (statsError) {
+                console.log('Failed to load statistics:', statsError);
+            }
 
         } catch (apiError) {
             console.log('API Error, falling back to local storage:', apiError);
@@ -143,6 +166,21 @@ export default function Dashboard() {
         if (diffInHours < 24) return `${diffInHours}h ago`;
         const diffInDays = Math.floor(diffInHours / 24);
         return `${diffInDays}d ago`;
+    };
+
+    const getCategoryImage = (category: string) => {
+        return categoryImages[category as keyof typeof categoryImages] || Card1Image;
+    };
+
+    const getCategoryDescription = (category: string) => {
+        switch (category) {
+            case 'ROADS': return 'Road & Infrastructure';
+            case 'SANITATION': return 'Sanitation & Cleanliness';
+            case 'LIGHTING': return 'Street Lighting';
+            case 'WASTE': return 'Waste Management';
+            case 'WATER': return 'Water Supply';
+            default: return 'General Issue';
+        }
     };
 
     useFocusEffect(
@@ -209,6 +247,30 @@ export default function Dashboard() {
                 </View>
             )}
 
+            {statistics && (
+                <View style={styles.statsContainer}>
+                    <Text style={styles.statsTitle}>Issue Statistics</Text>
+                    <View style={styles.statsGrid}>
+                        <View style={[styles.statCard, { backgroundColor: '#FFA726' }]}>
+                            <Text style={styles.statNumber}>{statistics.submitted}</Text>
+                            <Text style={styles.statLabel}>Submitted</Text>
+                        </View>
+                        <View style={[styles.statCard, { backgroundColor: '#42A5F5' }]}>
+                            <Text style={styles.statNumber}>{statistics.inProgress}</Text>
+                            <Text style={styles.statLabel}>In Progress</Text>
+                        </View>
+                        <View style={[styles.statCard, { backgroundColor: '#66BB6A' }]}>
+                            <Text style={styles.statNumber}>{statistics.resolved}</Text>
+                            <Text style={styles.statLabel}>Resolved</Text>
+                        </View>
+                        <View style={[styles.statCard, { backgroundColor: '#EF5350' }]}>
+                            <Text style={styles.statNumber}>{statistics.rejected}</Text>
+                            <Text style={styles.statLabel}>Rejected</Text>
+                        </View>
+                    </View>
+                </View>
+            )}
+
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#4A90E2" />
@@ -243,7 +305,7 @@ export default function Dashboard() {
                     <Text style={styles.tabIcon}>📋</Text>
                     <Text style={styles.tabLabel}>Report</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.tabItem}>
+                <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/map')}>
                     <Text style={styles.tabIcon}>🗺️</Text>
                     <Text style={styles.tabLabel}>Map</Text>
                 </TouchableOpacity>
@@ -443,5 +505,37 @@ const styles = StyleSheet.create({
         color: '#999',
         textAlign: 'center',
         paddingHorizontal: 40,
+    },
+    statsContainer: {
+        paddingHorizontal: 20,
+        marginBottom: 16,
+    },
+    statsTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
+    },
+    statsGrid: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 8,
+    },
+    statCard: {
+        flex: 1,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    statNumber: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    statLabel: {
+        fontSize: 12,
+        color: '#FFFFFF',
+        textAlign: 'center',
     },
 });

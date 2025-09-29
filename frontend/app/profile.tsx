@@ -27,8 +27,8 @@ export default function Profile() {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
+        {
+          text: 'Logout',
           style: 'destructive',
           onPress: async () => {
             await logout();
@@ -42,7 +42,7 @@ export default function Profile() {
   return (
     <View style={styles.container}>
       <StatusBar hidden={true} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backArrow}>←</Text>
@@ -100,6 +100,13 @@ export default function Profile() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={styles.adminButton}
+          onPress={() => router.push('/admin')}
+        >
+          <Text style={styles.adminButtonText}>Admin Panel</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Logout</Text>
@@ -211,6 +218,18 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   logoutButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  adminButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  adminButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',

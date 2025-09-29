@@ -21,7 +21,7 @@ export default function Index() {
       // In a real app, you would send OTP to the phone number
       const demoOTP = '123456';
       const success = await login(phoneNumber, demoOTP);
-      
+
       if (success) {
         router.replace('/dashboard');
       } else {

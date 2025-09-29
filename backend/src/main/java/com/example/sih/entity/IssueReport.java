@@ -2,6 +2,7 @@ package com.example.sih.entity;
 
 import com.example.sih.types.IssueCategory;
 import com.example.sih.types.Status;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -55,17 +56,21 @@ public class IssueReport {
     @NotNull(message = "Category can't be blank")
     @Enumerated(EnumType.STRING)
     private IssueCategory category;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Department department;
-    @ManyToOne(optional = false)
+    
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "city_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_issue_city"))
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private City city;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "locality_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_issue_locality"))
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "city"})
     private Locality locality;
     @PrePersist
     public void onCreate() {

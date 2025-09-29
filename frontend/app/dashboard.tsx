@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiService, IssueReport } from '../services/api';
 import Card1Image from '../assets/images/card1.png';
 import Card2Image from '../assets/images/card2.png';
 import Card3Image from '../assets/images/card3.png';
@@ -60,27 +61,116 @@ const cardData = [
 export default function Dashboard() {
     const [userIssues, setUserIssues] = useState<any[]>([]);
     const [allIssues, setAllIssues] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const loadUserIssues = async () => {
+    const loadIssues = async () => {
+        setLoading(true);
+        setError(null);
+
         try {
+            // Try to fetch issues from backend API
+            const apiIssues = await apiService.getAllIssues();
+
+            // Transform API issues to match the expected format
+            const transformedApiIssues = apiIssues.map((issue: IssueReport) => ({
+                id: issue.id,
+                image: issue.photoUrl || Card1Image, // Use photoUrl from backend, fallback to default image
+                title: issue.description ? issue.description.substring(0, 50) + (issue.description.length > 50 ? '...' : '') : 'No description', // Use description as title since backend doesn't have title field
+                status: issue.status || 'Pending',
+                statusColor: getStatusColor(issue.status || 'Pending'),
+                time: issue.createdAt ? formatTime(issue.createdAt) : 'Just now',
+                location: issue.city && issue.locality ? `${issue.locality.name}, ${issue.city.name}` : 'Unknown location', // Combine city and locality for location
+                description: issue.description,
+                category: issue.category,
+                isFromAPI: true // Mark as API data
+            }));
+
+            // Also load local issues for offline support
             const stored = await AsyncStorage.getItem('userIssues');
-            const issues = stored ? JSON.parse(stored) : [];
-            setUserIssues(issues);
-            setAllIssues([...issues, ...cardData]);
-        } catch (error) {
-            console.log('Error loading user issues:', error);
-            setAllIssues(cardData);
+            const localIssues = stored ? JSON.parse(stored).map((issue: any) => ({
+                ...issue,
+                isFromAPI: false // Mark local issues as not from API
+            })) : [];
+
+            setUserIssues(localIssues);
+            setAllIssues([...transformedApiIssues, ...localIssues]);
+
+        } catch (apiError) {
+            console.log('API Error, falling back to local storage:', apiError);
+            setError('Failed to load issues from server. Showing local data only.');
+
+            // Fallback to local storage only
+            try {
+                const stored = await AsyncStorage.getItem('userIssues');
+                const issues = stored ? JSON.parse(stored).map((issue: any) => ({
+                    ...issue,
+                    isFromAPI: false
+                })) : [];
+                const mockData = cardData.map(item => ({
+                    ...item,
+                    isFromAPI: false
+                }));
+                setUserIssues(issues);
+                setAllIssues([...issues, ...mockData]);
+            } catch (localError) {
+                console.log('Error loading local issues:', localError);
+                setAllIssues(cardData);
+            }
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const getStatusColor = (status: string): string => {
+        switch (status.toLowerCase()) {
+            case 'resolved':
+                return '#4CAF50';
+            case 'in progress':
+                return '#FF9500';
+            case 'pending':
+            default:
+                return '#FF6B6B';
+        }
+    };
+
+    const formatTime = (dateString: string): string => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+        if (diffInHours < 1) return 'Just now';
+        if (diffInHours < 24) return `${diffInHours}h ago`;
+        const diffInDays = Math.floor(diffInHours / 24);
+        return `${diffInDays}d ago`;
     };
 
     useFocusEffect(
         React.useCallback(() => {
-            loadUserIssues();
+            loadIssues();
         }, [])
     );
 
     const renderCard = (item: any) => (
-        <View key={item.id} style={styles.card}>
+        <TouchableOpacity
+            key={item.id}
+            style={styles.card}
+            onPress={() => {
+                // Only navigate to issue details if it's a real API issue (has numeric ID from backend)
+                // Mock data has IDs 1-5, but we need to check if it's from API
+                if (item.isFromAPI) {
+                    router.push({
+                        pathname: '/issue-details',
+                        params: {
+                            id: item.id.toString()
+                        }
+                    });
+                } else {
+                    // For mock data, show an alert or handle differently
+                    Alert.alert('Demo Data', 'This is demo data. Real issue details are not available.');
+                }
+            }}
+        >
             <Image
                 source={typeof item.image === 'string' ? { uri: item.image } : item.image}
                 style={styles.cardImage}
@@ -99,7 +189,7 @@ export default function Dashboard() {
                     <Text style={styles.arrowIcon}>→</Text>
                 </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 
     return (
@@ -113,9 +203,29 @@ export default function Dashboard() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {allIssues.map(renderCard)}
-            </ScrollView>
+            {error && (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                </View>
+            )}
+
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#4A90E2" />
+                    <Text style={styles.loadingText}>Loading issues...</Text>
+                </View>
+            ) : (
+                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                    {allIssues.length > 0 ? (
+                        allIssues.map(renderCard)
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyText}>No issues reported yet</Text>
+                            <Text style={styles.emptySubText}>Tap the + button to report your first issue</Text>
+                        </View>
+                    )}
+                </ScrollView>
+            )}
 
             <TouchableOpacity
                 style={styles.addButton}
@@ -129,7 +239,7 @@ export default function Dashboard() {
                     <Text style={styles.tabIcon}>🏠</Text>
                     <Text style={styles.tabLabel}>Home</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.tabItem}>
+                <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/report-issue')}>
                     <Text style={styles.tabIcon}>📋</Text>
                     <Text style={styles.tabLabel}>Report</Text>
                 </TouchableOpacity>
@@ -137,7 +247,7 @@ export default function Dashboard() {
                     <Text style={styles.tabIcon}>🗺️</Text>
                     <Text style={styles.tabLabel}>Map</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.tabItem}>
+                <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/profile')}>
                     <Text style={styles.tabIcon}>👤</Text>
                     <Text style={styles.tabLabel}>Profile</Text>
                 </TouchableOpacity>
@@ -290,5 +400,48 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#666',
         fontWeight: '500',
+    },
+    errorContainer: {
+        backgroundColor: '#FEE',
+        padding: 12,
+        marginHorizontal: 20,
+        marginVertical: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#FCC',
+    },
+    errorText: {
+        color: '#C33',
+        fontSize: 14,
+        textAlign: 'center',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+        color: '#666',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 60,
+    },
+    emptyText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 8,
+    },
+    emptySubText: {
+        fontSize: 14,
+        color: '#999',
+        textAlign: 'center',
+        paddingHorizontal: 40,
     },
 });

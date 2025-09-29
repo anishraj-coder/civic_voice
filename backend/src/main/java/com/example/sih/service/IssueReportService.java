@@ -44,11 +44,12 @@ public class IssueReportService {
     }
 
     public List<IssueReport> getAllIssues() {
-        return issueRepo.findAll();
+        return issueRepo.findAllWithRelations();
     }
 
     public IssueReport getIssue(Long id) {
-        return issueRepo.findById(id).orElseThrow(() -> new RuntimeException("Issue not found: " + id));
+        return issueRepo.findByIdWithRelations(id)
+                .orElseThrow(() -> new RuntimeException("Issue not found: " + id));
     }
 
     public IssueReport updateStatus(Long id, Status status) {
@@ -101,18 +102,18 @@ public class IssueReportService {
     }
 
     public List<IssueReport> getIssuesByStatus(Status status) {
-        return issueRepo.findByStatus(status);
+        return issueRepo.findByStatusWithRelations(status);
     }
 
     public List<IssueReport> getIssuesByCategory(IssueCategory cat) {
-        return issueRepo.findByCategory(cat);
+        return issueRepo.findByCategoryWithRelations(cat);
     }
 
     public List<IssueReport> getIssuesByCity(Long cityId) {
-        return issueRepo.findByCityId(cityId);
+        return issueRepo.findByCityIdWithRelations(cityId);
     }
 
     public List<IssueReport> getIssuesByLocality(Long localityId) {
-        return issueRepo.findByLocalityId(localityId);
+        return issueRepo.findByLocalityIdWithRelations(localityId);
     }
 }

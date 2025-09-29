@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, StatusBar, Alert, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, StatusBar, Alert, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiService, CreateIssueRequest } from '../services/api';
 
 const locationDataset = [
     { address: '123 Main Street, Downtown, Springfield', lat: '34.0522', lon: '118.2437' },
@@ -16,14 +17,15 @@ const locationDataset = [
 ];
 
 const issueTypes = [
-    'Roads',
-    'Sanitation',
-    'Streetlights',
-    'Water Leakage'
+    'ROADS',
+    'SANITATION',
+    'LIGHTING',
+    'WATER',
+    'WASTE'
 ];
 
 export default function ReportIssue() {
-    const [issueType, setIssueType] = useState('Roads');
+    const [issueType, setIssueType] = useState('ROADS');
     const [showDropdown, setShowDropdown] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [notes, setNotes] = useState('');
@@ -31,6 +33,7 @@ export default function ReportIssue() {
     const [coordinates, setCoordinates] = useState('Lat: 34.0522 N, Lon: 118.2437 W');
     const [latInput, setLatInput] = useState('34.0522');
     const [lonInput, setLonInput] = useState('118.2437');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const pickImageFromGallery = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -127,12 +130,25 @@ export default function ReportIssue() {
             return;
         }
 
+        setIsSubmitting(true);
+
         try {
+            const issueData: CreateIssueRequest = {
+                description: notes,
+                category: issueType,
+                latitude: parseFloat(latInput),
+                longitude: parseFloat(lonInput),
+                photoUrl: selectedImage
+            };
+
+            const createdIssue = await apiService.createIssue(issueData, 1, 1);
+
+            // Also store in local storage for offline access
             const newIssue = {
-                id: Date.now(),
+                id: createdIssue.id || Date.now(),
                 image: selectedImage,
                 title: notes.substring(0, 50) + (notes.length > 50 ? '...' : ''),
-                status: 'Pending',
+                status: createdIssue.status || 'Pending',
                 statusColor: '#FF6B6B',
                 time: 'Just now',
                 location: location,
@@ -154,7 +170,9 @@ export default function ReportIssue() {
             );
         } catch (error) {
             console.log('Submit error:', error);
-            Alert.alert('Error', 'Failed to submit the issue. Please try again.');
+            Alert.alert('Error', 'Failed to submit the issue. Please check your connection and try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -282,8 +300,16 @@ export default function ReportIssue() {
                         />
                     </View>
 
-                    <TouchableOpacity style={styles.submitButton} onPress={submitIssue}>
-                        <Text style={styles.submitButtonText}>Submit Issue</Text>
+                    <TouchableOpacity
+                        style={styles.submitButton}
+                        onPress={submitIssue}
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <ActivityIndicator color="white" size="small" />
+                        ) : (
+                            <Text style={styles.submitButtonText}>Submit Issue</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             </ScrollView>

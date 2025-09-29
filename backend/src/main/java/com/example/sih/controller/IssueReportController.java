@@ -23,8 +23,8 @@ public class IssueReportController {
     @PostMapping("/city/{cityId}/locality/{localityId}")
     public ResponseEntity<IssueReport> createIssue(
             @Valid @RequestBody IssueReport issue,
-            @PathVariable Long cityId,
-            @PathVariable Long localityId) {
+            @PathVariable("cityId") Long cityId,
+            @PathVariable("localityId") Long localityId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(issueService.createIssue(issue, cityId, localityId));
     }
 
@@ -34,47 +34,47 @@ public class IssueReportController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<IssueReport> getIssue(@PathVariable Long id) {
+    public ResponseEntity<IssueReport> getIssue(@PathVariable("id") Long id) {
         return ResponseEntity.ok(issueService.getIssue(id));
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<IssueReport> updateStatus(@PathVariable Long id, @RequestParam Status status) {
+    public ResponseEntity<IssueReport> updateStatus(@PathVariable("id") Long id, @RequestParam Status status) {
         return ResponseEntity.ok(issueService.updateStatus(id, status));
     }
 
     // Move an issue to a different city/locality (maintains counts)
     @PatchMapping("/{id}/location")
     public ResponseEntity<IssueReport> updateLocation(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestParam Long cityId,
             @RequestParam Long localityId) {
         return ResponseEntity.ok(issueService.updateLocation(id, cityId, localityId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteIssue(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteIssue(@PathVariable("id") Long id) {
         issueService.deleteIssue(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/status/{status}")
-    public List<IssueReport> getByStatus(@PathVariable Status status) {
+    public List<IssueReport> getByStatus(@PathVariable("status") Status status) {
         return issueService.getIssuesByStatus(status);
     }
 
     @GetMapping("/category/{category}")
-    public List<IssueReport> getByCategory(@PathVariable IssueCategory category) {
+    public List<IssueReport> getByCategory(@PathVariable("category") IssueCategory category) {
         return issueService.getIssuesByCategory(category);
     }
 
     @GetMapping("/city/{cityId}")
-    public List<IssueReport> getByCity(@PathVariable Long cityId) {
+    public List<IssueReport> getByCity(@PathVariable("cityId") Long cityId) {
         return issueService.getIssuesByCity(cityId);
     }
 
     @GetMapping("/locality/{localityId}")
-    public List<IssueReport> getByLocality(@PathVariable Long localityId) {
+    public List<IssueReport> getByLocality(@PathVariable("localityId") Long localityId) {
         return issueService.getIssuesByLocality(localityId);
     }
 }

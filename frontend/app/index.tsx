@@ -1,10 +1,38 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, StatusBar, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { useAuth } from '../contexts/AuthContext';
 import SelectionImage from '../assets/images/Selection.png';
 
 export default function Index() {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+
+  const handleLogin = async () => {
+    if (!phoneNumber.trim()) {
+      Alert.alert('Error', 'Please enter your phone number');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // For demo purposes, we'll use a fixed OTP
+      // In a real app, you would send OTP to the phone number
+      const demoOTP = '123456';
+      const success = await login(phoneNumber, demoOTP);
+      
+      if (success) {
+        router.replace('/dashboard');
+      } else {
+        Alert.alert('Error', 'Login failed. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred during login');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -38,11 +66,14 @@ export default function Index() {
         </Text>
 
         <TouchableOpacity
-          style={styles.loginButton}
-          onPress={() => router.push('/otp-verification')}
+          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+          onPress={handleLogin}
+          disabled={isLoading}
         >
-          <Text style={styles.loginButtonText}>Login</Text>
-          <Text style={styles.arrow}>→</Text>
+          <Text style={styles.loginButtonText}>
+            {isLoading ? 'Logging in...' : 'Login'}
+          </Text>
+          {!isLoading && <Text style={styles.arrow}>→</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -94,25 +125,22 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   disclaimer: {
-    fontSize: 14,
     color: '#666',
     lineHeight: 20,
     marginBottom: 32,
   },
   loginButton: {
-    backgroundColor: '#ffffffff',
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 8,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#cccccc',
     shadowRadius: 3.84,
     elevation: 5,
   },

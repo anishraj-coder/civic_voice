@@ -17,7 +17,7 @@ public class LocalityController {
     private final LocalityService localityService;
 
     @PostMapping("/city/{cityId}")
-    public ResponseEntity<Locality> addLocality(@RequestBody Locality locality, @PathVariable Long cityId) {
+    public ResponseEntity<Locality> addLocality(@RequestBody Locality locality, @PathVariable("cityId") Long cityId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(localityService.createLocality(locality, cityId));
     }
 
@@ -27,12 +27,12 @@ public class LocalityController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Locality> getLocalityById(@PathVariable Long id) {
+    public ResponseEntity<Locality> getLocalityById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(localityService.getLocalityById(id));
     }
 
     @GetMapping("/city/{cityId}")
-    public List<Locality> getLocalitiesByCity(@PathVariable Long cityId) {
+    public List<Locality> getLocalitiesByCity(@PathVariable("cityId") Long cityId) {
         return localityService.getLocalitiesByCity(cityId);
     }
 
@@ -47,7 +47,7 @@ public class LocalityController {
     }
 
     @GetMapping("/city/{cityId}/top")
-    public List<Locality> topLocalitiesByCity(@PathVariable Long cityId, @RequestParam(defaultValue = "10") int limit) {
+    public List<Locality> topLocalitiesByCity(@PathVariable("cityId") Long cityId, @RequestParam(defaultValue = "10") int limit) {
         return localityService.topLocalitiesByCity(cityId, limit);
     }
 

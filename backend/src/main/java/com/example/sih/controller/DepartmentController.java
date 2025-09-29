@@ -30,7 +30,7 @@ public class DepartmentController {
     }
 
     @GetMapping("/{id}")
-    public Department getDepartment(@PathVariable Long id) {
+    public Department getDepartment(@PathVariable("id") Long id) {
         return departmentService.getDepartmentById(id);
     }
 }

@@ -1,118 +1,101 @@
 package com.example.sih.service;
 
-import com.example.sih.entity.*;
-import com.example.sih.repository.*;
+import com.example.sih.dto.CreateIssueRequest;
+import com.example.sih.dto.UpdateIssueLocationRequest;
+import com.example.sih.entity.City;
+import com.example.sih.entity.Department;
+import com.example.sih.entity.IssueReport;
+import com.example.sih.entity.Locality;
+import com.example.sih.repository.CityRepository;
+import com.example.sih.repository.DepartmentRepository;
+import com.example.sih.repository.IssueReportRepository;
+import com.example.sih.repository.LocalityRepository;
 import com.example.sih.types.IssueCategory;
 import com.example.sih.types.Status;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class IssueReportService {
+    private final IssueReportRepository issueReportRepository;
+    private final CityRepository cityRepository;
+    private final LocalityRepository localityRepository;
+    private final DepartmentRepository departmentRepository;
+    private final CounterService counterService;
 
-    private final IssueReportRepository issueRepo;
-    private final DepartmentRepository deptRepo;
-    private final CityRepository cityRepo;
-    private final LocalityRepository localityRepo;
-    private final CityService cityService;
-    private final LocalityService localityService;
+    private Department resolveDepartment(IssueCategory category) {
+        Department dep = departmentRepository.findByCategoryHandled(category);
+        if (dep == null) throw new EntityNotFoundException("No dept for category " + category);
+        return dep;
+    }
 
     @Transactional
-    public IssueReport createIssue(IssueReport issue, Long cityId, Long localityId) {
-        City city = cityRepo.findById(cityId).orElseThrow(() -> new RuntimeException("City not found: " + cityId));
-        Locality locality = localityRepo.findById(localityId).orElseThrow(() -> new RuntimeException("Locality not found: " + localityId));
+    public IssueReport createIssue(CreateIssueRequest req) {
+        City city = cityRepository.findById(req.getCityId())
+                .orElseThrow(() -> new EntityNotFoundException("City not found"));
+        Locality locality = localityRepository.findById(req.getLocalityId())
+                .orElseThrow(() -> new EntityNotFoundException("Locality not found"));
+        Department dept = resolveDepartment(req.getCategory());
 
-        issue.setCity(city);
-        issue.setLocality(locality);
+        IssueReport issue = IssueReport.builder()
+                .description(req.getDescription())
+                .latitude(req.getLatitude())
+                .longitude(req.getLongitude())
+                .photoUrl(req.getPhotoUrl())
+                .status(Status.SUBMITTED)
+                .category(req.getCategory())
+                .department(dept)
+                .city(city)
+                .locality(locality)
+                .build();
 
-        Department dept = deptRepo.findByCategoryHandled(issue.getCategory());
-        if (dept != null) issue.setDepartment(dept);
-
-        if (issue.getStatus() == null) issue.setStatus(Status.SUBMITTED);
-
-        IssueReport saved = issueRepo.save(issue);
-
-        // maintain counters
-        cityService.incrementIssueCount(city.getId(), 1);
-        localityService.incrementIssueCount(locality.getId(), 1);
-
+        IssueReport saved = issueReportRepository.save(issue);
+        counterService.onIssueCreated(city.getId(), locality.getId(), dept.getId());
         return saved;
     }
 
-    public List<IssueReport> getAllIssues() {
-        return issueRepo.findAll();
-    }
+    @Transactional
+    public IssueReport updateStatus(Long issueId, Status newStatus) {
+        IssueReport issue = issueReportRepository.findById(issueId)
+                .orElseThrow(() -> new EntityNotFoundException("Issue not found"));
+        Status from = issue.getStatus();
+        if (from == newStatus) return issue;
 
-    public IssueReport getIssue(Long id) {
-        return issueRepo.findById(id).orElseThrow(() -> new RuntimeException("Issue not found: " + id));
-    }
-
-    public IssueReport updateStatus(Long id, Status status) {
-        IssueReport ir = getIssue(id);
-        ir.setStatus(status);
-        return issueRepo.save(ir);
+        counterService.onStatusTransition(issue, from, newStatus);
+        if (newStatus == Status.RESOLVED) issue.setResolvedAt(LocalDateTime.now());
+        if (from == Status.RESOLVED && newStatus != Status.RESOLVED) issue.setResolvedAt(null);
+        issue.setStatus(newStatus);
+        return issueReportRepository.save(issue);
     }
 
     @Transactional
-    public IssueReport updateLocation(Long id, Long newCityId, Long newLocalityId) {
-        IssueReport ir = getIssue(id);
+    public IssueReport updateLocation(Long issueId, UpdateIssueLocationRequest req) {
+        IssueReport issue = issueReportRepository.findById(issueId)
+                .orElseThrow(() -> new EntityNotFoundException("Issue not found"));
+        Long oldC = issue.getCity().getId();
+        Long oldL = issue.getLocality().getId();
 
-        City oldCity = ir.getCity();
-        Locality oldLoc = ir.getLocality();
+        City newC = cityRepository.findById(req.getCityId())
+                .orElseThrow(() -> new EntityNotFoundException("City not found"));
+        Locality newL = localityRepository.findById(req.getLocalityId())
+                .orElseThrow(() -> new EntityNotFoundException("Locality not found"));
 
-        City newCity = (newCityId != null) ? cityRepo.findById(newCityId)
-                .orElseThrow(() -> new RuntimeException("City not found: " + newCityId)) : oldCity;
-
-        Locality newLoc = (newLocalityId != null) ? localityRepo.findById(newLocalityId)
-                .orElseThrow(() -> new RuntimeException("Locality not found: " + newLocalityId)) : oldLoc;
-
-        boolean cityChanged = !oldCity.getId().equals(newCity.getId());
-        boolean locChanged = !oldLoc.getId().equals(newLoc.getId());
-
-        if (cityChanged) {
-            cityService.incrementIssueCount(oldCity.getId(), -1);
-            cityService.incrementIssueCount(newCity.getId(), 1);
-        }
-        if (locChanged) {
-            localityService.incrementIssueCount(oldLoc.getId(), -1);
-            localityService.incrementIssueCount(newLoc.getId(), 1);
-        }
-
-        ir.setCity(newCity);
-        ir.setLocality(newLoc);
-        return issueRepo.save(ir);
+        counterService.onRelocated(issue, oldC, oldL, newC.getId(), newL.getId());
+        issue.setCity(newC);
+        issue.setLocality(newL);
+        return issueReportRepository.save(issue);
     }
 
     @Transactional
-    public void deleteIssue(Long id) {
-        IssueReport ir = getIssue(id);
-        City c = ir.getCity();
-        Locality l = ir.getLocality();
-
-        issueRepo.delete(ir);
-
-        // maintain counters
-        cityService.incrementIssueCount(c.getId(), -1);
-        localityService.incrementIssueCount(l.getId(), -1);
-    }
-
-    public List<IssueReport> getIssuesByStatus(Status status) {
-        return issueRepo.findByStatus(status);
-    }
-
-    public List<IssueReport> getIssuesByCategory(IssueCategory cat) {
-        return issueRepo.findByCategory(cat);
-    }
-
-    public List<IssueReport> getIssuesByCity(Long cityId) {
-        return issueRepo.findByCityId(cityId);
-    }
-
-    public List<IssueReport> getIssuesByLocality(Long localityId) {
-        return issueRepo.findByLocalityId(localityId);
+    public void deleteIssue(Long issueId) {
+        IssueReport issue = issueReportRepository.findById(issueId)
+                .orElseThrow(() -> new EntityNotFoundException("Issue not found"));
+        counterService.onIssueDeleted(issue);
+        issueReportRepository.delete(issue);
     }
 }

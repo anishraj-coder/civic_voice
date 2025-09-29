@@ -2,9 +2,10 @@ package com.example.sih.service;
 
 import com.example.sih.entity.Department;
 import com.example.sih.repository.DepartmentRepository;
-import com.example.sih.types.IssueCategory;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -12,16 +13,30 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DepartmentService {
     private final DepartmentRepository departmentRepository;
-    public Department saveDepartment(Department dept){
-        return departmentRepository.save(dept);
+    private final RecalculationService recalculationService;
+
+    @Transactional
+    public Department createDepartment(Department department) {
+        return departmentRepository.save(department);
     }
-    public List<Department> getAllDepartments(){
+
+    @Transactional(readOnly = true)
+    public List<Department> getAllDepartments() {
         return departmentRepository.findAll();
     }
-    public Department getDepartmentById(Long id){
-        return departmentRepository.findById(id).orElse(null);
+
+    @Transactional(readOnly = true)
+    public Department getDepartment(Long id) {
+        return departmentRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Department not found"));
     }
-    public Department getDepartmentByCategory(IssueCategory category){
-        return departmentRepository.findByCategoryHandled(category);
+
+    @Transactional
+    public void deleteDepartment(Long id) {
+        departmentRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void recalculateDepartmentCounts() {
+        recalculationService.recalcDepartments();
     }
 }

@@ -2,76 +2,48 @@ package com.example.sih.service;
 
 import com.example.sih.entity.City;
 import com.example.sih.entity.Locality;
-import com.example.sih.repository.CityRepository;
-import com.example.sih.repository.IssueReportRepository;
 import com.example.sih.repository.LocalityRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class LocalityService {
+    private final LocalityRepository localityRepository;
+    private final RecalculationService recalculationService;
 
-    private final LocalityRepository localityRepo;
-    private final CityRepository cityRepo;
-    private final IssueReportRepository issueRepo;
-
-    public Locality createLocality(Locality locality, Long cityId) {
-        City city = cityRepo.findById(cityId).orElseThrow(() -> new RuntimeException("City not found: " + cityId));
-        locality.setCity(city);
-        if (locality.getIssueCount() == null) locality.setIssueCount(0L);
-        return localityRepo.save(locality);
+    @Transactional
+    public Locality createLocality(Locality locality) {
+        return localityRepository.save(locality);
     }
 
-    public List<Locality> getAllLocalities() {
-        return localityRepo.findAll(Sort.by(Sort.Direction.DESC, "issueCount"));
+    @Transactional(readOnly = true)
+    public List<Locality> searchLocalities(String name) {
+        return localityRepository.findByNameContainingIgnoreCase(name);
     }
 
-    public Locality getLocalityById(Long id) {
-        return localityRepo.findById(id).orElseThrow(() -> new RuntimeException("Locality not found: " + id));
-    }
-
+    @Transactional(readOnly = true)
     public List<Locality> getLocalitiesByCity(Long cityId) {
-        return localityRepo.findByCityIdOrderByIssueCountDesc(cityId);
+        City city = City.builder().id(cityId).build();
+        return localityRepository.findByCity(city);
     }
 
-    public List<Locality> searchLocalities(String keyword) {
-        return localityRepo.findByNameContainingIgnoreCase(keyword);
-    }
-
-    public List<Locality> topLocalities(int limit) {
-        return localityRepo.findAll(PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "issueCount"))).getContent();
-    }
-
-    public List<Locality> topLocalitiesByCity(Long cityId, int limit) {
-        return localityRepo.findByCityIdOrderByIssueCountDesc(cityId)
-                .stream().limit(limit).toList();
+    @Transactional(readOnly = true)
+    public Locality getLocality(Long id) {
+        return localityRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Locality not found"));
     }
 
     @Transactional
-    public void incrementIssueCount(Long localityId, long delta) {
-        localityRepo.incrementIssueCount(localityId, delta);
+    public void deleteLocality(Long id) {
+        localityRepository.deleteById(id);
     }
 
     @Transactional
-    public void recalcLocalityIssueCounts() {
-        Map<Long, Long> counts = issueRepo.countGroupedByLocality().stream()
-                .collect(Collectors.toMap(
-                        row -> (Long) row[0],
-                        row -> (Long) row[1]
-                ));
-
-        List<Locality> localities = localityRepo.findAll();
-        for (Locality l : localities) {
-            long newCount = counts.getOrDefault(l.getId(), 0L);
-            l.setIssueCount(newCount);
-        }
-        localityRepo.saveAll(localities);
+    public void recalculateLocalityCounts() {
+        recalculationService.recalcLocalities();
     }
 }

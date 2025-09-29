@@ -17,8 +17,13 @@ public class City {
     @NotBlank(message = "City name cannot be blank")
     @Column(nullable = false, unique = true)
     private String name;
+
     private Long area;
     private Long population;
-    @Column(nullable=false)
-    private Long issueCount=0L;
+
+    @Column(nullable = false)
+    private Long activeIssueCount = 0L;
+
+    @Column(nullable = false)
+    private Long resolvedIssueCount = 0L;
 }

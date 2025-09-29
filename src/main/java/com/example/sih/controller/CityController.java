@@ -3,7 +3,6 @@ package com.example.sih.controller;
 import com.example.sih.entity.City;
 import com.example.sih.service.CityService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,39 +10,31 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/cities")
 @RequiredArgsConstructor
-@CrossOrigin
 public class CityController {
-
-    private final CityService cityService;
+    private final CityService service;
 
     @PostMapping
-    public ResponseEntity<City> addCity(@RequestBody City city) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(cityService.createCity(city));
-    }
-
-    @GetMapping
-    public List<City> getAllCities() {
-        return cityService.getAllCities();
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<City> getCityById(@PathVariable Long id) {
-        return ResponseEntity.ok(cityService.getCityById(id));
+    public City create(@RequestBody City city) {
+        return service.createCity(city);
     }
 
     @GetMapping("/search")
-    public List<City> searchCities(@RequestParam String keyword) {
-        return cityService.searchCities(keyword);
+    public List<City> search(@RequestParam String name) {
+        return service.searchCities(name);
     }
 
-    @GetMapping("/top")
-    public List<City> topCities(@RequestParam(defaultValue = "10") int limit) {
-        return cityService.topCities(limit);
+    @GetMapping("/{id}")
+    public City get(@PathVariable Long id) {
+        return service.getCity(id);
     }
 
-    @PostMapping("/recalculate-counts")
-    public ResponseEntity<Void> recalcCounts() {
-        cityService.recalcCityIssueCounts();
-        return ResponseEntity.accepted().build();
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        service.deleteCity(id);
+    }
+
+    @PostMapping("/recalculate")
+    public void recalculate() {
+        service.recalculateCityCounts();
     }
 }

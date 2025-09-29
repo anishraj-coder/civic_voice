@@ -3,8 +3,6 @@ package com.example.sih.controller;
 import com.example.sih.entity.Department;
 import com.example.sih.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,25 +10,31 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/departments")
 @RequiredArgsConstructor
-@CrossOrigin
 public class DepartmentController {
-
-    private final DepartmentService departmentService;
+    private final DepartmentService service;
 
     @PostMapping
-    public ResponseEntity<Department> addDepartment(@RequestBody Department dept) {
-        Department saved= departmentService.saveDepartment(dept);
-        if(saved!=null)return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-        else return ResponseEntity.notFound().build();
+    public Department create(@RequestBody Department department) {
+        return service.createDepartment(department);
     }
 
     @GetMapping
-    public List<Department> getDepartments() {
-        return departmentService.getAllDepartments();
+    public List<Department> getAll() {
+        return service.getAllDepartments();
     }
 
     @GetMapping("/{id}")
-    public Department getDepartment(@PathVariable Long id) {
-        return departmentService.getDepartmentById(id);
+    public Department get(@PathVariable Long id) {
+        return service.getDepartment(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        service.deleteDepartment(id);
+    }
+
+    @PostMapping("/recalculate")
+    public void recalculate() {
+        service.recalculateDepartmentCounts();
     }
 }

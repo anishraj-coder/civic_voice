@@ -2,22 +2,38 @@ package com.example.sih.repository;
 
 import com.example.sih.entity.City;
 import com.example.sih.entity.Locality;
-import org.springframework.data.jpa.repository.*;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
 public interface LocalityRepository extends JpaRepository<Locality, Long> {
-
     List<Locality> findByNameContainingIgnoreCase(String name);
-
     List<Locality> findByCity(City city);
+    List<Locality> findByCityIdOrderByActiveIssueCountDesc(Long cityId);
+    List<Locality> findAllByOrderByActiveIssueCountDesc();
+    List<Locality> findAllByOrderByResolvedIssueCountDesc();
 
-    List<Locality> findByCityIdOrderByIssueCountDesc(Long cityId);
+    @Query("select l.activeIssueCount from Locality l where l.id = :id")
+    Long getActiveIssueCount(Long id);
 
-    List<Locality> findAllByOrderByIssueCountDesc();
+    @Query("select l.resolvedIssueCount from Locality l where l.id = :id")
+    Long getResolvedIssueCount(Long id);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update Locality l set l.issueCount = l.issueCount + :delta where l.id = :id")
-    int incrementIssueCount(@Param("id") Long id, @Param("delta") long delta);
+    @Modifying
+    @Query("update Locality l set l.activeIssueCount = l.activeIssueCount + :delta where l.id = :id")
+    int incrementActiveIssueCount(Long id, long delta);
+
+    @Modifying
+    @Query("update Locality l set l.activeIssueCount = l.activeIssueCount - :delta where l.id = :id")
+    int decrementActiveIssueCount(Long id, long delta);
+
+    @Modifying
+    @Query("update Locality l set l.resolvedIssueCount = l.resolvedIssueCount + :delta where l.id = :id")
+    int incrementResolvedIssueCount(Long id, long delta);
+
+    @Modifying
+    @Query("update Locality l set l.resolvedIssueCount = l.resolvedIssueCount - :delta where l.id = :id")
+    int decrementResolvedIssueCount(Long id, long delta);
 }

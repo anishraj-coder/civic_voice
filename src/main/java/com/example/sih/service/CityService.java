@@ -2,63 +2,41 @@ package com.example.sih.service;
 
 import com.example.sih.entity.City;
 import com.example.sih.repository.CityRepository;
-import com.example.sih.repository.IssueReportRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class CityService {
+    private final CityRepository cityRepository;
+    private final RecalculationService recalculationService;
 
-    private final CityRepository cityRepo;
-    private final IssueReportRepository issueRepo;
-
+    @Transactional
     public City createCity(City city) {
-        if (city.getIssueCount() == null) city.setIssueCount(0L);
-        return cityRepo.save(city);
+        return cityRepository.save(city);
     }
 
-    public List<City> getAllCities() {
-        return cityRepo.findAll(Sort.by(Sort.Direction.DESC, "issueCount"));
+    @Transactional(readOnly = true)
+    public List<City> searchCities(String name) {
+        return cityRepository.findByNameContainingIgnoreCase(name);
     }
 
-    public City getCityById(Long id) {
-        return cityRepo.findById(id).orElseThrow(() -> new RuntimeException("City not found: " + id));
-    }
-
-    public List<City> searchCities(String keyword) {
-        return cityRepo.findByNameContainingIgnoreCase(keyword);
-    }
-
-    public List<City> topCities(int limit) {
-        return cityRepo.findAll(PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "issueCount"))).getContent();
+    @Transactional(readOnly = true)
+    public City getCity(Long id) {
+        return cityRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("City not found"));
     }
 
     @Transactional
-    public void incrementIssueCount(Long cityId, long delta) {
-        cityRepo.incrementIssueCount(cityId, delta);
+    public void deleteCity(Long id) {
+        cityRepository.deleteById(id);
     }
 
     @Transactional
-    public void recalcCityIssueCounts() {
-        // Build a map of cityId -> count from IssueReport
-        Map<Long, Long> counts = issueRepo.countGroupedByCity().stream()
-                .collect(Collectors.toMap(
-                        row -> (Long) row[0],
-                        row -> (Long) row[1]
-                ));
-
-        List<City> cities = cityRepo.findAll();
-        for (City c : cities) {
-            long newCount = counts.getOrDefault(c.getId(), 0L);
-            c.setIssueCount(newCount);
-        }
-        cityRepo.saveAll(cities);
+    public void recalculateCityCounts() {
+        recalculationService.recalcCities();
     }
 }

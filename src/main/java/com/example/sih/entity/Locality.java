@@ -22,6 +22,10 @@ public class Locality {
     @JoinColumn(name = "city_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_locality_city"))
     private City city;
+
     @Column(nullable = false)
-    private Long issueCount=0L;
+    private Long activeIssueCount = 0L;
+
+    @Column(nullable = false)
+    private Long resolvedIssueCount = 0L;
 }
